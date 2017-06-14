@@ -85,7 +85,8 @@ def equalizeHist(img):
     return img
 
 def equializeThreshGray(img):
-    eq_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    eq_gray = cv2.equalizeHist(gray)
     _, thimg = cv2.threshold(eq_gray, thresh=250, maxval= 255, type=cv2.THRESH_BINARY)
     return thimg
 
@@ -119,17 +120,13 @@ def redThres(img, thresh_min = 25, thresh_max = 255):
     red_binary[(red >= thresh_min) & (red <= thresh_max)]  = 1
     return red_binary
 
-def sThres(img, thresh_min = 25, thresh_max = 255):
+def hsvThres(img, thresh_min , thresh_max ):
     hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
-    s_channel = hls[:,:,2]
-    s_binary = np.zeros_like(s_channel)
-    s_binary[(s_channel > thresh_min) & (s_channel <= thresh_max)] = 1
-    return s_binary
+    mask_gt = np.all(hls>thresh_min, axis=2)
+    mask_lt = np.all(hls<thresh_max, axis=2)
+    hsv_mask = np.logical_and(mask_gt, mask_lt)
+    return hsv_mask
 
-# Return saturation channel
-def getSatChannel(img):
-    hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
-    return hls[:,:,2]
 # Visualize an example
 """
 img = cv2.imread('test_images/test2.jpg')
@@ -140,43 +137,24 @@ plt.imshow(img_proc, cmap='gray')
 plt.show()
 """
 # Now make the main image processing pipeline
-"""
-def binariseImage(img, displayImages=True):
-    s_min, s_max = 70, 255
-    eq_img = equalizeHist(img) # Equalized image
-    r_min, r_max = 250, 255
-    sob_min, sob_max = 75, 255
-    # Now do a red channel thresholding
-    h, w, c = img.shape
-    binary_mask = np.zeros((h, w), dtype = np.uint8)
 
-    # First do red threshold : For the white lines
-    red_mask = redThres(eq_img, r_min, r_max)
-    binary_mask = np.logical_or(red_mask, binary_mask)
-    # do the sobel filter on the image
-    sobel_mask = sobelMagnitude(eq_img, thresh_min=sob_min, thresh_max=sob_max, sobel_kernel=9)
-    binary_mask = np.logical_or(sobel_mask, binary_mask)
 
-    #now find the yellow line
-    s_mask = sThres(eq_img, s_min, s_max)
-    binary_mask = np.logical_or(s_mask, binary_mask)
-    print("binary_mask = %s" %str(binary_mask.dtype))
-    # Now do a simple dilate then erode to fill holes, to keep lines continuous
-    kernel = np.ones((5, 5), np.uint8)
-    closing = cv2.morphologyEx(binary_mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
-"""
 def binariseImage(img, displayImages=True):
     h, w, c = img.shape
-    s_min, s_max = 70, 255
+    hls_min, hls_max = ([0,70,70], [50, 255, 255])
+
+
 
     binary_mask = np.zeros((h, w), dtype = np.uint8)
     # First detect yellow lines
-    s_mask = sThres(img, thresh_min=s_min, thresh_max=s_max)
+    s_mask = hsvThres(img, hls_min,hls_max)
+
     binary_mask = np.logical_or(binary_mask,s_mask)
 
+
     # now detect white lines by thresholding equialised frame
-    eq_img = equalizeHist(img) # Equalized image
-    white_mask = equializeThreshGray(eq_img)
+
+    white_mask = equializeThreshGray(img)
     binary_mask = np.logical_or(binary_mask, white_mask)
 
     # get sobel max
@@ -192,29 +170,34 @@ def binariseImage(img, displayImages=True):
 
     print("closing type = %s" %str(closing.dtype))
     if displayImages==True:
-        fig, ax = plt.subplots(2,3,figsize=(24,9))
-        fig.tight_layout()
-        ax[0,0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        ax[0,0].set_title("original input frame")
-        ax[0,1].imshow(white_mask,cmap='gray')
-        ax[0,1].set_title("White Thresholed mask")
-        ax[0,2].imshow(s_mask,cmap='binary')
-        ax[0,2].set_title("Yellow mask")
-        ax[1,0].imshow(sob_mask,cmap='gray')
-        ax[1,0].set_title("sobel mask")
-        ax[1,1].imshow(binary_mask,cmap='gray')
-        ax[1,1].set_title("Final Mask from all channels")
-        ax[1,2].imshow(closing,cmap='gray')
-        ax[1,2].set_title("Mask with closed holes")
+        fig, ax = plt.subplots(2, 3,figsize=(15,6))
+        fig.set_facecolor('white')
+        ax[0, 0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+        ax[0, 0].set_title('input_frame')
+        #ax[0, 0].set_axis_off()
+        ax[0, 0].set_axis_bgcolor('red')
+        ax[0, 1].imshow(white_mask, cmap='gray')
+        ax[0, 1].set_title('white mask')
+        ax[0, 1].set_axis_off()
+
+        ax[0, 2].imshow(s_mask, cmap='gray')
+        ax[0, 2].set_title('yellow mask')
+        #ax[0, 2].set_axis_off()
+
+        ax[1, 0].imshow(sob_mask, cmap='gray')
+        ax[1, 0].set_title('sobel mask')
+        #ax[1, 0].set_axis_ofsaurbf()
+
+        ax[1, 1].imshow(binary_mask, cmap='gray')
+        ax[1, 1].set_title('Final Binary')
+        #ax[1, 1].set_axis_off()
+
+        ax[1, 2].imshow(closing, cmap='gray')
+        ax[1, 2].set_title('after closure')
         plt.show()
     return closing
-def HSV_select(image, min_values, max_values):
-    HSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    min_th = np.all(HSV > min_values, axis=2)
-    max_th = np.all(HSV < max_values, axis=2)
-    out = np.logical_and(min_th, max_th)
-    return out
 
 
 def sobel_select(image, kernel_size):
@@ -277,7 +260,7 @@ def binarize(img, print_images=False):
 
         ax[1, 0].imshow(sobel_mask, cmap='gray')
         ax[1, 0].set_title('sobel mask')
-        #ax[1, 0].set_axis_off()
+        #ax[1, 0].set_axis_ofsaurbf()
 
         ax[1, 1].imshow(binary, cmap='gray')
         ax[1, 1].set_title('Final Binary')
