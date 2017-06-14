@@ -78,11 +78,6 @@ plt.show()
 """
 # Step 2. Processing Images and finding edges
 
-def equalizeHist(img):
-    img[:,:,0] = cv2.equalizeHist(img[:,:,0])
-    img[:,:,1] = cv2.equalizeHist(img[:,:,1])
-    img[:,:,2] = cv2.equalizeHist(img[:,:,2])
-    return img
 
 def equializeThreshGray(img):
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
@@ -113,12 +108,6 @@ def sobelMagnitude(img, thresh_min=75, thresh_max=255, sobel_kernel=11):
     gradmag_binary[(scaled_gradmag >= thresh_min) & (scaled_gradmag <= thresh_max)] = 1
     return gradmag_binary
 
-# Binary red channel threshold
-def redThres(img, thresh_min = 25, thresh_max = 255):
-    red = img[:,:,2]
-    red_binary = np.zeros_like(red)
-    red_binary[(red >= thresh_min) & (red <= thresh_max)]  = 1
-    return red_binary
 
 def hsvThres(img, thresh_min , thresh_max ):
     hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
@@ -196,81 +185,6 @@ def binariseImage(img, displayImages=True):
         ax[1, 2].imshow(closing, cmap='gray')
         ax[1, 2].set_title('after closure')
         plt.show()
-    return closing
-
-
-
-def sobel_select(image, kernel_size):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=kernel_size)
-    sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=kernel_size)
-    sobel_mag = np.sqrt(sobel_x ** 2 + sobel_y ** 2)
-    sobel_mag = np.uint8(sobel_mag / np.max(sobel_mag) * 255)
-    _, sobel_mag = cv2.threshold(sobel_mag, 75, 1, cv2.THRESH_BINARY)
-    return sobel_mag.astype(bool)
-
-
-def equalized_grayscale(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    eq_global = cv2.equalizeHist(gray)
-    _, th = cv2.threshold(eq_global, thresh=250, maxval=255, type=cv2.THRESH_BINARY)
-    return th
-
-
-def binarize(img, print_images=False):
-    # threshold that works well for detecting yellow lanes
-    HSV_min = np.array([0, 70, 70])
-    HSV_max = np.array([50, 255, 255])
-
-    h, w = img.shape[:2]
-
-    binary = np.zeros(shape=(h, w), dtype=np.uint8)
-
-    # extract yallow in HSV color space
-    HSV_mask = HSV_select(img, HSV_min, HSV_max)
-    binary = np.logical_or(binary, HSV_mask)
-
-    # highlight white lines by thresholding the equalized frame
-    white_mask = equalized_grayscale(img)
-    binary = np.logical_or(binary, white_mask)
-
-    # get Sobel mask
-    sobel_mask = sobel_select(img, kernel_size=9)
-    binary = np.logical_or(binary, sobel_mask)
-
-        # apply a light morphology to "fill the gaps" in the binary image
-    kernel = np.ones((5, 5), np.uint8)
-    closing = cv2.morphologyEx(binary.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
-
-    if print_images:
-#         plt.figure(figsize=(10,10))
-        f, ax = plt.subplots(2, 3,figsize=(15,6))
-        f.set_facecolor('white')
-        ax[0, 0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        ax[0, 0].set_title('input_frame')
-        #ax[0, 0].set_axis_off()
-        ax[0, 0].set_axis_bgcolor('red')
-        ax[0, 1].imshow(white_mask, cmap='gray')
-        ax[0, 1].set_title('white mask')
-        ax[0, 1].set_axis_off()
-
-        ax[0, 2].imshow(HSV_mask, cmap='gray')
-        ax[0, 2].set_title('yellow mask')
-        #ax[0, 2].set_axis_off()
-
-        ax[1, 0].imshow(sobel_mask, cmap='gray')
-        ax[1, 0].set_title('sobel mask')
-        #ax[1, 0].set_axis_ofsaurbf()
-
-        ax[1, 1].imshow(binary, cmap='gray')
-        ax[1, 1].set_title('Final Binary')
-        #ax[1, 1].set_axis_off()
-
-        ax[1, 2].imshow(closing, cmap='gray')
-        ax[1, 2].set_title('after closure')
-        #ax[1, 2].set_axis_off()
-        plt.show()
-
     return closing
 
 
