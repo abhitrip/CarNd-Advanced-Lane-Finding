@@ -64,10 +64,11 @@ def undistort(img, mtx, dist):
     return frame_undistorted
 
 # Step 1.1 Test Undistortion
-"""
+
 ret, mtx, dist, rvecs, tvecs = calibrateCamera()
 img = mpimg.imread('test_images/test2.jpg')
 img_undistorted = undistort(img, mtx, dist)
+"""
 fig,(ax1,ax2) = plt.subplots(1,2,figsize=(24,12))
 fig.tight_layout()
 ax1.imshow(img)
@@ -160,39 +161,80 @@ def binariseImage(img, displayImages=True):
     print("closing type = %s" %str(closing.dtype))
     if displayImages==True:
         fig, ax = plt.subplots(2, 3,figsize=(15,6))
-        fig.set_facecolor('white')
+        fig.tight_layout()
         ax[0, 0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
         ax[0, 0].set_title('input_frame')
-        #ax[0, 0].set_axis_off()
+
         ax[0, 0].set_axis_bgcolor('red')
         ax[0, 1].imshow(white_mask, cmap='gray')
-        ax[0, 1].set_title('white mask')
-        ax[0, 1].set_axis_off()
+
 
         ax[0, 2].imshow(s_mask, cmap='gray')
         ax[0, 2].set_title('yellow mask')
-        #ax[0, 2].set_axis_off()
+
 
         ax[1, 0].imshow(sob_mask, cmap='gray')
         ax[1, 0].set_title('sobel mask')
-        #ax[1, 0].set_axis_ofsaurbf()
+
 
         ax[1, 1].imshow(binary_mask, cmap='gray')
-        ax[1, 1].set_title('Final Binary')
-        #ax[1, 1].set_axis_off()
+        ax[1, 1].set_title('Final Binary mask')
+
 
         ax[1, 2].imshow(closing, cmap='gray')
-        ax[1, 2].set_title('after closure')
+        ax[1, 2].set_title('after filling')
         plt.show()
     return closing
 
 
+"""
 test_images = glob.glob('test_images/*.jpg')
 
 img = cv2.imread("test_images/test2.jpg")
 closed = binariseImage(img, True)
+"""
+# Perspective Transform
 
+def drawQuadrilateral(img, pts, colour = [255,0,0], thickness=4 ):
+    pt1, pt2, pt3, pt4 = pts
+    cv2.line(img, tuple(pt1), tuple(pt2), colour, thickness)
+    cv2.line(img, tuple(pt2), tuple(pt3), colour, thickness)
+    cv2.line(img, tuple(pt3), tuple(pt4), colour, thickness)
+    cv2.line(img, tuple(pt4), tuple(pt1), colour, thickness)
+
+
+def perspectiveTransform(img, displayImages=True, showQuad=True):
+    h,w,_ = img.shape
+    src_pts = np.float32([[0, h-30],[w,h-30],[540,450],[750,450]])
+    dst_pts = np.float32([[0,h],[w,h],[0,0],[w,0]])
+    M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+    Minv = cv2.getPerspectiveTransform(dst_pts,src_pts)
+    warped_img = cv2.warpPerspective(img, M, (w,h), flags = cv2.INTER_LINEAR)
+
+
+    if displayImages==True:
+        fig, (ax1,ax2) = plt.subplots(1,2,figsize=(15,9))
+        fig.tight_layout()
+        ax1.imshow(img, cmap='gray')
+        ax1.set_title(" original image")
+        for pt in src_pts:
+            ax1.plot(*pt,'.')
+        ax2.imshow(warped_img, cmap='gray')
+        ax2.set_title(" warped image- bird'seye view")
+        for pt in dst_pts:
+            ax2.plot(*pt,'.')
+        plt.show()
+    return warped_img, M, Minv
+
+
+# show result on test images
+# for test_img in glob.glob('test_images/*.jpg'):
+test_img = "test_images/test4.jpg"
+img = cv2.imread(test_img)
+img_undistorted = undistort(img, mtx, dist)
+img_binary = binariseImage(img_undistorted,False)
+img_birdeye, M, Minv = perspectiveTransform(cv2.cvtColor(img_undistorted, cv2.COLOR_BGR2RGB), True)
 
 
 
