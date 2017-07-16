@@ -68,6 +68,7 @@ ret, mtx, dist, rvecs, tvecs = calibrateCamera()
 img = mpimg.imread('test_images/test2.jpg')
 img_undistorted = undistort(img, mtx, dist)
 
+"""
 fig,(ax1,ax2) = plt.subplots(1,2,figsize=(24,12))
 fig.tight_layout()
 ax1.imshow(img)
@@ -75,5 +76,109 @@ ax1.set_title('Distorted image', fontsize=20)
 ax2.imshow(img_undistorted)
 ax2.set_title('Undistorted image',fontsize=20)
 plt.show()
+"""
+
+# Step 2. Processing Images and finding edges
+def equializeThreshGray(img):
+    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    eq_gray = cv2.equalizeHist(gray)
+    _, thimg = cv2.threshold(eq_gray, thresh=250, maxval= 255, type=cv2.THRESH_BINARY)
+    return thimg
+
+
+def sobelImg(img, thresh_min = 25, thresh_max = 255, sobel_kernel = 11):
+    grayImg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    sobelx = np.absolute(cv2.Sobel(grayImg,cv2.CV_64F,1,0, ksize=sobel_kernel))
+    sobely = np.absolute(cv2.Sobel(grayImg,cv2.CV_64F,0,1, ksize=sobel_kernel))
+    scaled_sobelx = np.uint16(255*sobelx/np.max(sobelx))
+    scaled_sobely = np.uint16(255*sobely/np.max(sobely))
+    sobel_sum = scaled_sobelx+0.2*scaled_sobely
+    scaled_sobel_sum = np.uint8(255*sobel_sum/np.max(sobel_sum))
+    sum_binary = np.zeros_like(scaled_sobel_sum)
+    sum_binary[(scaled_sobel_sum >= thresh_min) & (scaled_sobel_sum <= thresh_max)] = 1
+    return sum_binary
+
+def sobelMagnitude(img, thresh_min=75, thresh_max=255, sobel_kernel=11):
+    grayImg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    sobelx = np.absolute(cv2.Sobel(grayImg, cv2.CV_64F, 1, 0, ksize=sobel_kernel))
+    sobely = np.absolute(cv2.Sobel(grayImg, cv2.CV_64F, 0, 1, ksize=sobel_kernel))
+    gradmag = np.sqrt(sobelx**2 + sobely**2)
+    scaled_gradmag = np.uint8(255*gradmag/np.max(gradmag))
+    gradmag_binary = np.zeros_like(scaled_gradmag)
+    gradmag_binary[(scaled_gradmag >= thresh_min) & (scaled_gradmag <= thresh_max)] = 1
+    return gradmag_binary
+
+
+def hsvThres(img, thresh_min , thresh_max ):
+    hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+    mask_gt = np.all(hls>thresh_min, axis=2)
+    mask_lt = np.all(hls<thresh_max, axis=2)
+    hsv_mask = np.logical_and(mask_gt, mask_lt)
+    return hsv_mask
+
+# Now let's make the main image processing pipeline
+
+def binariseImage(img, displayImages=True):
+    h, w, c = img.shape
+    hls_min, hls_max = ([0,70,70], [50, 255, 255])
+
+    binary_mask = np.zeros((h, w), dtype = np.uint8)
+    # First detect yellow lines
+    s_mask = hsvThres(img, hls_min,hls_max)
+
+    binary_mask = np.logical_or(binary_mask,s_mask)
+
+
+    # now detect white lines by thresholding equialised frame
+
+    white_mask = equializeThreshGray(img)
+    binary_mask = np.logical_or(binary_mask, white_mask)
+
+    # get sobel max
+    sob_min, sob_max = 75, 255
+    # Now do a red channel thresholding
+    sob_mask = sobelMagnitude(img, thresh_min=75, thresh_max=255, sobel_kernel=9)
+    binary_mask = np.logical_or(binary_mask, sob_mask)
+
+
+    # Now do a simple dilate then erode to fill holes, to keep lines continuous
+    kernel = np.ones((5, 5), np.uint8)
+    closing = cv2.morphologyEx(binary_mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
+
+    print("closing type = %s" %str(closing.dtype))
+    if displayImages==True:
+        fig, ax = plt.subplots(2, 3,figsize=(15,6))
+        fig.tight_layout()
+        ax[0, 0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+        ax[0, 0].set_title('input_frame')
+
+        ax[0, 0].set_axis_bgcolor('red')
+        ax[0, 1].imshow(white_mask, cmap='gray')
+
+
+        ax[0, 2].imshow(s_mask, cmap='gray')
+        ax[0, 2].set_title('yellow mask')
+
+
+        ax[1, 0].imshow(sob_mask, cmap='gray')
+        ax[1, 0].set_title('sobel mask')
+
+
+        ax[1, 1].imshow(binary_mask, cmap='gray')
+        ax[1, 1].set_title('Final Binary mask')
+
+
+        ax[1, 2].imshow(closing, cmap='gray')
+        ax[1, 2].set_title('after filling')
+        plt.show()
+    return closing
+
+test_images = glob.glob('test_images/*.jpg')
+
+img = cv2.imread("test_images/test2.jpg")
+closed = binariseImage(img, True)
+
+
 
 
