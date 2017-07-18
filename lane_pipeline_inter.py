@@ -175,10 +175,47 @@ def binariseImage(img, displayImages=True):
     return closing
 
 test_images = glob.glob('test_images/*.jpg')
-
+"""
 img = cv2.imread("test_images/test2.jpg")
 closed = binariseImage(img, True)
+"""
+# Now let's do the perspective transform part
 
+def drawQuadrilateral(img, pts, colour = [255,0,0], thickness=4 ):
+    pt1, pt2, pt3, pt4 = pts
+    cv2.line(img, tuple(pt1), tuple(pt2), colour, thickness)
+    cv2.line(img, tuple(pt2), tuple(pt3), colour, thickness)
+    cv2.line(img, tuple(pt3), tuple(pt4), colour, thickness)
+    cv2.line(img, tuple(pt4), tuple(pt1), colour, thickness)
+    cv2.imshow("rectangledImg",cv2.cvtColor(img,cv2.COLOR_BGR2RGB))
+    cv2.waitKey()
+
+def perspectiveTransform(img, displayImages=True, showQuad=True):
+    h,w = img.shape[:2]
+    src_pts = np.float32([[0, h-30],[w,h-30],[540,450],[750,450]])
+    dst_pts = np.float32([[0,h],[w,h],[0,0],[w,0]])
+    M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+    Minv = cv2.getPerspectiveTransform(dst_pts,src_pts)
+    warped_img = cv2.warpPerspective(img, M, (w,h), flags = cv2.INTER_LINEAR)
+
+
+    if displayImages==True:
+        fig, (ax1,ax2) = plt.subplots(1,2,figsize=(15,9))
+        fig.tight_layout()
+        ax1.imshow(img, cmap='gray')
+        ax1.set_title(" original image")
+        ax2.imshow(warped_img, cmap='gray')
+        ax2.set_title(" warped image- bird'seye view")
+        plt.show()
+    return warped_img, M, Minv
+
+# show result on test images
+# for test_img in glob.glob('test_images/*.jpg'):
+test_img = "test_images/test4.jpg"
+img = mpimg.imread(test_img)
+img_undistorted = undistort(img, mtx, dist)
+img_binary = binariseImage(img_undistorted,displayImages=False)
+img_birdeye, M, Minv = perspectiveTransform(img_undistorted, True)
 
 
 
