@@ -94,7 +94,7 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-I used the same algorithm as mentioned in the video lectures. First, check the histogram of the lower half of the image and find the two peaks for the left and right lines. Then we use the sliding window method to work our way upwards and find the relevant points in the image which mark the lane. Next, Use the np.polyfit() method to fit a second degree polynomial to these points.  You can see the code in sliding_windows() function.
+I used the same algorithm as mentioned in the video lectures. First, check the histogram of the lower half of the image and find the two peaks for the left and right lines. Then we use the sliding window method to work our way upwards and find the relevant points in the image which mark the lane. Next, Use the np.polyfit() method to fit a second degree polynomial to these points.  You can see the code in sliding_window_polyfit() function.
 For videos, we can reuse the previously detected lane lines(of previous n frames) to get an approximation of lane line in current frame. You can see the code in  approx_by_previous_fits().
 
 ![alt text][image5]
