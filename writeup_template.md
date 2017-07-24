@@ -108,7 +108,7 @@ The radius of curvature can be computed using the coefficients of 2nd degree pol
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-The methods blend_with_road() and print_final_frame() are used to draw the lane back onto the road.  Here is an example of my result on a test image:
+The methods combine_with_road() and add_metrics_to_img() are used to draw the lane back onto the road.  Here is an example of my result on a test image:
 
 ![alt text][image6]
 
