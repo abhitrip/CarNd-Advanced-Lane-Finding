@@ -21,7 +21,7 @@ The goals / steps of this project are the following:
 [image4]: ./test4_persp.jpg 
 [image5]: ./test_images/sliding.jpg 
 [image6]: ./test_images/road_detected.jpg 
-[video1]: ./project_video_output.mp4 
+[video1]: ./project_video_out.mp4 
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
